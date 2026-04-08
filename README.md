@@ -2,14 +2,13 @@
 
 ## NomedoProjeto
 
-Número da Lista: 60<br>
-Conteúdo da Disciplina: Grafos 1 <br>
+Conteúdo da Disciplina: Grafos <br>
 
 ## Aluno
 |Matrícula | Aluno |
 | -- | -- |
 | 23/1027032  | Arthur Evangelista de Oliveira |
-|   | Yan Matheus Santa Brigida de Aguiar |
+| 23/1038303 | Yan Matheus Santa Brigida de Aguiar |
 
 ## Sobre 
 Descreva os objetivos do seu projeto e como ele funciona. 
@@ -18,7 +17,7 @@ Descreva os objetivos do seu projeto e como ele funciona.
 Adicione 3 ou mais screenshots do projeto em funcionamento.
 
 ## Instalação 
-Linguagem: xxxxxx<br>
+Linguagem: python<br>
 Framework: (caso exista)<br>
 Descreva os pré-requisitos para rodar o seu projeto e os comandos necessários.
 
