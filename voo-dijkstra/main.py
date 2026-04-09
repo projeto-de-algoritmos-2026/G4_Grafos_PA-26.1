@@ -21,6 +21,8 @@ class Airport:
 	country: str
 	iata: str
 	icao: str
+	latitude: float | None
+	longitude: float | None
 
 
 @dataclass(frozen=True)
@@ -41,13 +43,23 @@ def normalize_text(value: str) -> str:
 	return re.sub(r"\s+", " ", value.strip().lower())
 
 
+def parse_float(value: str) -> float | None:
+	# Converte texto para float, retornando None quando o valor for invalido.
+	try:
+		if value.strip() in {"", "\\N"}:
+			return None
+		return float(value)
+	except ValueError:
+		return None
+
+
 def load_airports(path: Path) -> list[Airport]:
 	# Carrega o dataset de aeroportos.
 	airports: list[Airport] = []
 	with path.open(newline="", encoding="utf-8") as file_handle:
 		reader = csv.reader(file_handle)
 		for row in reader:
-			if len(row) < 6:
+			if len(row) < 8:
 				continue
 			airports.append(
 				Airport(
@@ -57,6 +69,8 @@ def load_airports(path: Path) -> list[Airport]:
 					country=row[3],
 					iata=row[4],
 					icao=row[5],
+					latitude=parse_float(row[6]),
+					longitude=parse_float(row[7]),
 				)
 			)
 	return airports
@@ -210,13 +224,13 @@ def fastest_routes_by_filter(routes: Iterable[Route], origin_iata: str, destinat
 
 
 def bfs_min_connections(airports: list[Airport], routes: list[Route], origin_iata: str, destination_iata: str):
-	# Chama a futura rotina de BFS para menor numero de conexoes.
-	import dijkstra
+	# Chama a rotina de BFS para menor numero de conexoes.
+	import bfs
 
-	solver = getattr(dijkstra, "find_route_with_fewest_connections", None)
+	solver = getattr(bfs, "find_route_with_fewest_connections", None)
 	if not callable(solver):
 		raise NotImplementedError(
-			"Implemente dijkstra.find_route_with_fewest_connections(airports, routes, origin_iata, destination_iata) em dijkstra.py."
+			"Implemente bfs.find_route_with_fewest_connections(airports, routes, origin_iata, destination_iata) em bfs.py."
 		)
 
 	return solver(airports=airports, routes=routes, origin_iata=origin_iata, destination_iata=destination_iata)
@@ -271,7 +285,7 @@ def main() -> None:
 			origin_airport.iata,
 			destination_airport.iata,
 		)
-		print("\Rotas mais rápidas:")
+		print("\nRotas com menos conexoes:")
 		print(fastest_route)
 	except NotImplementedError as error:
 		print(f"\nBFS ainda nao disponivel: {error}")
@@ -283,20 +297,20 @@ def main() -> None:
 			origin_airport.iata,
 			destination_airport.iata,
 		)
-		print("\Rotas mais baratas:")
+		print("\nPreco de voos diretos:")
 		print(cheapest_route)
 	except NotImplementedError as error:
 		print(f"\nPreco ainda nao disponivel: {error}")
 
 	try:
-		fastest_route = dijkstra (
+		cheapest_path = dijkstra (
 			airports,
 			routes,
 			origin_airport.iata,
 			destination_airport.iata,
 		)
 		print("\nResultado do Dijkstra:")
-		print(fastest_route)
+		print(cheapest_path)
 	except NotImplementedError as error:
 		print(f"\nDijkstra ainda nao disponivel: {error}")
 
