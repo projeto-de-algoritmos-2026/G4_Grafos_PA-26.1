@@ -242,7 +242,7 @@ def bfs_min_connections(airports: list[Airport], routes: list[Route], origin_iat
 	solver = getattr(bfs, "find_route_with_fewest_connections", None)
 	if not callable(solver):
 		raise NotImplementedError(
-			"Implemente bfs.find_route_with_fewest_connections(airports, routes, origin_iata, destination_iata) em bfs.py."
+			"Funcao bfs.find_route_with_fewest_connections indisponivel no modulo bfs.py."
 		)
 
 	return solver(airports=airports, routes=routes, origin_iata=origin_iata, destination_iata=destination_iata)
@@ -255,7 +255,7 @@ def price_formula(airports: list[Airport], routes: list[Route], origin_iata: str
 	solver = getattr(price, "calculate_price", None)
 	if not callable(solver):
 		raise NotImplementedError(
-			"Implemente price.calculate_price(airports, routes, origin_iata, destination_iata) em price.py."
+			"Funcao price.calculate_price indisponivel no modulo price.py."
 		)
 
 	return solver(airports=airports, routes=routes, origin_iata=origin_iata, destination_iata=destination_iata)
@@ -268,7 +268,7 @@ def dijkstra(airports: list[Airport], routes: list[Route], origin_iata: str, des
 	solver = getattr(dijkstra, "find_shortest_route", None)
 	if not callable(solver):
 		raise NotImplementedError(
-			"Implemente dijkstra.find_shortest_route(airports, routes, origin_iata, destination_iata) em dijkstra.py."
+			"Funcao dijkstra.find_shortest_route indisponivel no modulo dijkstra.py."
 		)
 
 	return solver(airports=airports, routes=routes, origin_iata=origin_iata, destination_iata=destination_iata)
