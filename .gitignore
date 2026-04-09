@@ -4,6 +4,7 @@ __pycache__/
 *$py.class
 
 # Virtual environments
+<<<<<<< HEAD
 venv/
 .venv/
 env/
@@ -24,11 +25,34 @@ htmlcov/
 # Type checker / linters
 .mypy_cache/
 .ruff_cache/
+=======
+.venv/
+venv/
+env/
+ENV/
+
+# Tool caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+
+# Jupyter
+.ipynb_checkpoints/
+>>>>>>> 659409e91f226b95e0c62dd621879cc2b0445c77
 
 # IDE/editor settings
 .vscode/
 .idea/
 
+<<<<<<< HEAD
 # OS files
+=======
+# OS generated files
+>>>>>>> 659409e91f226b95e0c62dd621879cc2b0445c77
 .DS_Store
 Thumbs.db
