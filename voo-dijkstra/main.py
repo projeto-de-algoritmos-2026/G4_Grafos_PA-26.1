@@ -4,7 +4,7 @@ import csv
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable
+from typing import Any, Iterable
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -104,12 +104,24 @@ def airport_matches(airports: Iterable[Airport], query: str) -> list[Airport]:
 	# Busca aeroportos por IATA, ICAO, nome ou cidade.
 	normalized_query = normalize_text(query)
 	upper_query = query.strip().upper()
+
+	# Prioriza codigo exato para evitar falsos positivos por substring.
+	if upper_query:
+		exact_code_matches = [
+			airport
+			for airport in airports
+			if airport.iata.upper() == upper_query or airport.icao.upper() == upper_query
+		]
+		if exact_code_matches:
+			return exact_code_matches
+
 	matches: list[Airport] = []
 
 	for airport in airports:
-		if upper_query and airport.iata.upper() == upper_query:
-			matches.append(airport)
-			continue
+		if upper_query:
+			if airport.iata.upper().startswith(upper_query) or airport.icao.upper().startswith(upper_query):
+				matches.append(airport)
+				continue
 
 		airport_tokens = [
 			normalize_text(airport.name),
@@ -262,6 +274,86 @@ def dijkstra(airports: list[Airport], routes: list[Route], origin_iata: str, des
 	return solver(airports=airports, routes=routes, origin_iata=origin_iata, destination_iata=destination_iata)
 
 
+def same_city_alternatives(airports: Iterable[Airport], destination: Airport, max_options: int = 5) -> list[Airport]:
+	# Sugere aeroportos alternativos da mesma cidade para evitar buscas sem resultado.
+	city_key = normalize_text(destination.city)
+	country_key = normalize_text(destination.country)
+	selected_iata = destination.iata.upper()
+	alternatives: list[Airport] = []
+	seen_codes: set[str] = set()
+
+	for airport in airports:
+		iata = airport.iata.upper()
+		if not iata or iata == "\\N" or iata == selected_iata:
+			continue
+		if normalize_text(airport.city) != city_key or normalize_text(airport.country) != country_key:
+			continue
+		if iata in seen_codes:
+			continue
+		seen_codes.add(iata)
+		alternatives.append(airport)
+
+	alternatives.sort(key=lambda airport: (airport.name, airport.iata))
+	return alternatives[:max_options]
+
+
+def find_first_working_alternative(
+	airports: list[Airport],
+	routes: list[Route],
+	origin_iata: str,
+	destination: Airport,
+	solver,
+) -> tuple[Airport | None, dict[str, Any] | None]:
+	# Tenta aeroportos alternativos da mesma cidade ate encontrar rota valida.
+	for alternative in same_city_alternatives(airports, destination):
+		result = solver(airports, routes, origin_iata, alternative.iata)
+		if result.get("found"):
+			return alternative, result
+	return None, None
+
+
+def print_ranked_routes(title: str, result: dict[str, Any], metric_key: str, metric_label: str) -> None:
+	# Exibe rotas ranqueadas com detalhe de cada trecho e total.
+	print(f"\n{title}")
+	if not result.get("found"):
+		print(result.get("message", "Nenhuma rota encontrada."))
+		limits = result.get("limits", {})
+		if limits:
+			parts: list[str] = []
+			if "max_expansions" in limits:
+				parts.append(f"expansoes={limits.get('expansions_used', 0)}/{limits.get('max_expansions', '-')}")
+			if "max_connections" in limits:
+				parts.append(f"profundidade={limits.get('max_connections')}")
+			elif "max_segments" in limits:
+				parts.append(f"profundidade={limits.get('max_segments')}")
+			if parts:
+				print(f"Limites usados: {', '.join(parts)}.")
+		return
+
+	routes = result.get("routes", [])
+	if not routes:
+		print("Nenhuma rota encontrada.")
+		return
+
+	for index, route in enumerate(routes, start=1):
+		path = route.get("path", [])
+		metric_value = route.get(metric_key, "-")
+		total_price = route.get("total_price", 0.0)
+		path_repr = " -> ".join(path)
+		print(f"{index}. {path_repr} | {metric_label}: {metric_value} | total: R$ {total_price:.2f}")
+
+		legs = route.get("legs", [])
+		for leg in legs:
+			print(f"   - {leg.get('from')} -> {leg.get('to')}: R$ {float(leg.get('price', 0.0)):.2f}")
+
+	limits = result.get("limits", {})
+	if limits.get("truncated"):
+		print(
+			"Aviso: busca interrompida por limite de seguranca "
+			f"({limits.get('expansions_used', 0)}/{limits.get('max_expansions', '-')})."
+		)
+
+
 def main() -> None:
 	# Orquestra a interface do terminal.
 	airports = load_airports(AIRPORTS_FILE)
@@ -278,6 +370,9 @@ def main() -> None:
 		f"Destino selecionado: {destination_airport.name} - {destination_airport.city} ({destination_airport.iata})"
 	)
 
+	fastest_route: dict[str, Any] | None = None
+	cheapest_path: dict[str, Any] | None = None
+
 	try:
 		fastest_route = bfs_min_connections(
 			airports,
@@ -285,8 +380,32 @@ def main() -> None:
 			origin_airport.iata,
 			destination_airport.iata,
 		)
-		print("\nRotas com menos conexoes:")
-		print(fastest_route)
+		print_ranked_routes(
+			"Rotas com menos conexoes (top 3):",
+			fastest_route,
+			metric_key="connections",
+			metric_label="conexoes",
+		)
+
+		if not fastest_route.get("found"):
+			alternative_airport, alternative_result = find_first_working_alternative(
+				airports=airports,
+				routes=routes,
+				origin_iata=origin_airport.iata,
+				destination=destination_airport,
+				solver=bfs_min_connections,
+			)
+			if alternative_airport and alternative_result:
+				print(
+					f"\nSem rota para {destination_airport.iata}. "
+					f"Mostrando alternativa na mesma cidade: {alternative_airport.name} ({alternative_airport.iata})."
+				)
+				print_ranked_routes(
+					"Rotas com menos conexoes (fallback):",
+					alternative_result,
+					metric_key="connections",
+					metric_label="conexoes",
+				)
 	except NotImplementedError as error:
 		print(f"\nBFS ainda nao disponivel: {error}")
 
@@ -309,8 +428,32 @@ def main() -> None:
 			origin_airport.iata,
 			destination_airport.iata,
 		)
-		print("\nResultado do Dijkstra:")
-		print(cheapest_path)
+		print_ranked_routes(
+			"Rotas mais baratas (Dijkstra, top 3):",
+			cheapest_path,
+			metric_key="segments",
+			metric_label="trechos",
+		)
+
+		if not cheapest_path.get("found"):
+			alternative_airport, alternative_result = find_first_working_alternative(
+				airports=airports,
+				routes=routes,
+				origin_iata=origin_airport.iata,
+				destination=destination_airport,
+				solver=dijkstra,
+			)
+			if alternative_airport and alternative_result:
+				print(
+					f"\nSem rota para {destination_airport.iata}. "
+					f"Mostrando alternativa na mesma cidade: {alternative_airport.name} ({alternative_airport.iata})."
+				)
+				print_ranked_routes(
+					"Rotas mais baratas (Dijkstra, fallback):",
+					alternative_result,
+					metric_key="segments",
+					metric_label="trechos",
+				)
 	except NotImplementedError as error:
 		print(f"\nDijkstra ainda nao disponivel: {error}")
 
