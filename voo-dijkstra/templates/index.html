@@ -31,14 +31,24 @@
       </section>
 
       <section class="search-container">
-        <form class="search-grid" id="search-form">
-          <div class="form-group">
+        <form class="search-grid" id="search-form" autocomplete="off">
+          <div class="form-group autocomplete-group">
             <label for="origem">De onde você vai partir? (IATA)</label>
             <input type="text" id="origem" placeholder="Ex: BSB (Brasília)" />
+            <div
+              class="suggestions-panel"
+              data-suggestions-for="origem"
+              hidden
+            ></div>
           </div>
-          <div class="form-group">
+          <div class="form-group autocomplete-group">
             <label for="destino">Para onde você vai? (IATA)</label>
             <input type="text" id="destino" placeholder="Ex: GRU (Guarulhos)" />
+            <div
+              class="suggestions-panel"
+              data-suggestions-for="destino"
+              hidden
+            ></div>
           </div>
           <button type="submit">Pesquisar Rotas</button>
         </form>

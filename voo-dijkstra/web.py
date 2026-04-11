@@ -3,7 +3,7 @@ from flask import Flask, request, jsonify, render_template
 import bfs
 import price
 import dijkstra
-from main import load_airports, load_routes, AIRPORTS_FILE, ROUTES_FILE
+from main import AIRPORTS_FILE, ROUTES_FILE, airport_matches, load_airports, load_routes
 
 app = Flask(__name__)
 
@@ -38,6 +38,26 @@ def api_rotas():
         })
     except Exception as e:
         return jsonify({"erro": str(e)}), 500
+
+@app.route('/api/aeroportos')
+def api_aeroportos():
+    query = request.args.get('q', '').strip()
+
+    if not query:
+        return jsonify([])
+
+    matches = airport_matches(airports, query)[:10]
+    return jsonify([
+        {
+            "iata": airport.iata,
+            "icao": airport.icao,
+            "name": airport.name,
+            "city": airport.city,
+            "country": airport.country,
+            "label": f"{airport.city} - {airport.name} ({airport.iata})",
+        }
+        for airport in matches
+    ])
 
 if __name__ == '__main__':
     print("Iniciando servidor web...")

@@ -135,11 +135,15 @@ body::before {
 }
 
 .search-container {
+  position: relative;
+  z-index: 40;
   margin-top: -28px;
   padding: 0 8px;
 }
 
 .search-grid {
+  position: relative;
+  z-index: 2;
   display: grid;
   grid-template-columns: 1fr 1fr auto;
   gap: 16px;
@@ -160,6 +164,11 @@ body::before {
 
 .form-group {
   text-align: left;
+}
+
+.autocomplete-group {
+  position: relative;
+  z-index: 30;
 }
 
 label {
@@ -195,6 +204,58 @@ input:focus {
   box-shadow: 0 0 0 4px rgba(106, 228, 255, 0.12);
 }
 
+.suggestions-panel {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 8px);
+  z-index: 120;
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 18px;
+  border: 1px solid rgba(173, 196, 255, 0.18);
+  background: rgba(6, 12, 24, 0.98);
+  box-shadow: 0 24px 42px rgba(0, 0, 0, 0.4);
+  max-height: 280px;
+  overflow: auto;
+}
+
+.suggestions-panel[hidden] {
+  display: none;
+}
+
+.suggestion-item {
+  display: grid;
+  gap: 2px;
+  width: 100%;
+  min-height: auto;
+  padding: 12px 14px;
+  border: 1px solid transparent;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text);
+  text-align: left;
+  box-shadow: none;
+}
+
+.suggestion-item strong {
+  font-size: 0.98rem;
+}
+
+.suggestion-item span {
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.suggestion-item:hover,
+.suggestion-item.is-active {
+  border-color: rgba(106, 228, 255, 0.42);
+  background: rgba(106, 228, 255, 0.12);
+  transform: none;
+  box-shadow: none;
+}
+
 button {
   height: 56px;
   padding: 0 26px;
@@ -225,6 +286,8 @@ button:active {
 }
 
 .content-area {
+  position: relative;
+  z-index: 1;
   margin-top: 24px;
 }
 

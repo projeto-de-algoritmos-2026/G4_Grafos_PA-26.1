@@ -1,10 +1,176 @@
 const resultados = document.getElementById("resultados");
 const searchForm = document.getElementById("search-form");
+const airportInputs = Array.from(
+  document.querySelectorAll(".autocomplete-group input"),
+);
+const suggestionRequests = new Map();
+const suggestionState = new Map();
 
 searchForm.addEventListener("submit", (event) => {
   event.preventDefault();
   buscar();
 });
+
+airportInputs.forEach((input) => {
+  const panel = input.parentElement.querySelector(".suggestions-panel");
+  suggestionState.set(input.id, { items: [], activeIndex: -1, panel });
+
+  input.addEventListener("input", () => {
+    input.dataset.selectedIata = "";
+    debounceSuggestions(input);
+  });
+
+  input.addEventListener("focus", () => {
+    if (input.value.trim()) {
+      debounceSuggestions(input, true);
+    }
+  });
+
+  input.addEventListener("blur", () => {
+    window.setTimeout(() => hideSuggestions(input.id), 150);
+  });
+
+  input.addEventListener("keydown", (event) => {
+    handleSuggestionKeydown(event, input);
+  });
+});
+
+function debounceSuggestions(input, immediate = false) {
+  const query = input.value.trim();
+
+  if (!query) {
+    hideSuggestions(input.id);
+    return;
+  }
+
+  if (suggestionRequests.has(input.id)) {
+    window.clearTimeout(suggestionRequests.get(input.id));
+  }
+
+  const delay = immediate ? 0 : 180;
+  const timeoutId = window.setTimeout(
+    () => fetchSuggestions(input, query),
+    delay,
+  );
+  suggestionRequests.set(input.id, timeoutId);
+}
+
+async function fetchSuggestions(input, query) {
+  try {
+    const response = await fetch(
+      `/api/aeroportos?q=${encodeURIComponent(query)}`,
+    );
+    const items = response.ok ? await response.json() : [];
+    renderSuggestions(input.id, items);
+  } catch (error) {
+    renderSuggestions(input.id, []);
+  }
+}
+
+function renderSuggestions(inputId, items) {
+  const state = suggestionState.get(inputId);
+
+  if (!state) {
+    return;
+  }
+
+  state.items = Array.isArray(items) ? items.slice(0, 6) : [];
+  state.activeIndex = -1;
+  state.panel.innerHTML = "";
+
+  if (!state.items.length) {
+    state.panel.hidden = true;
+    return;
+  }
+
+  state.items.forEach((item, index) => {
+    const option = createElement("button", "suggestion-item");
+    option.type = "button";
+    option.dataset.index = String(index);
+    option.innerHTML = `
+      <strong>${item.label}</strong>
+      <span>${item.country}</span>
+    `;
+    option.addEventListener("mousedown", (event) => {
+      event.preventDefault();
+      selectSuggestion(inputId, index);
+    });
+    state.panel.append(option);
+  });
+
+  state.panel.hidden = false;
+}
+
+function selectSuggestion(inputId, index) {
+  const state = suggestionState.get(inputId);
+  const input = document.getElementById(inputId);
+
+  if (!state || !input || !state.items[index]) {
+    return;
+  }
+
+  const item = state.items[index];
+  input.value = item.iata;
+  input.dataset.selectedIata = item.iata;
+  input.dataset.selectedLabel = item.label;
+  hideSuggestions(inputId);
+}
+
+function handleSuggestionKeydown(event, input) {
+  const state = suggestionState.get(input.id);
+
+  if (!state || state.panel.hidden || !state.items.length) {
+    return;
+  }
+
+  if (event.key === "ArrowDown") {
+    event.preventDefault();
+    state.activeIndex = Math.min(state.activeIndex + 1, state.items.length - 1);
+    updateActiveSuggestion(input.id);
+  }
+
+  if (event.key === "ArrowUp") {
+    event.preventDefault();
+    state.activeIndex = Math.max(state.activeIndex - 1, 0);
+    updateActiveSuggestion(input.id);
+  }
+
+  if (event.key === "Enter" && state.activeIndex >= 0) {
+    event.preventDefault();
+    selectSuggestion(input.id, state.activeIndex);
+  }
+
+  if (event.key === "Escape") {
+    hideSuggestions(input.id);
+  }
+}
+
+function updateActiveSuggestion(inputId) {
+  const state = suggestionState.get(inputId);
+
+  if (!state) {
+    return;
+  }
+
+  const children = Array.from(state.panel.querySelectorAll(".suggestion-item"));
+
+  children.forEach((child, index) => {
+    child.classList.toggle("is-active", index === state.activeIndex);
+  });
+}
+
+function hideSuggestions(inputId) {
+  const state = suggestionState.get(inputId);
+
+  if (!state) {
+    return;
+  }
+
+  state.panel.hidden = true;
+  state.panel.innerHTML = "";
+  state.items = [];
+  state.activeIndex = -1;
+}
 
 function formatPrice(value) {
   if (value === null || value === undefined || Number.isNaN(Number(value))) {
@@ -365,12 +531,52 @@ function renderError(message) {
   resultados.append(errorBox);
 }
 
+async function resolveAirportCode(input) {
+  const rawValue = input.value.trim();
+
+  if (!rawValue) {
+    return "";
+  }
+
+  if (/^[A-Z]{3}$/.test(rawValue)) {
+    return rawValue;
+  }
+
+  const selectedIata = input.dataset.selectedIata;
+  if (selectedIata) {
+    return selectedIata;
+  }
+
+  const response = await fetch(
+    `/api/aeroportos?q=${encodeURIComponent(rawValue)}`,
+  );
+  const matches = response.ok ? await response.json() : [];
+
+  if (!Array.isArray(matches) || matches.length === 0) {
+    return "";
+  }
+
+  const exactCityMatch = matches.find(
+    (item) => item.city?.toLowerCase() === rawValue.toLowerCase(),
+  );
+  const chosen = exactCityMatch || matches[0];
+  input.value = chosen.iata;
+  input.dataset.selectedIata = chosen.iata;
+  input.dataset.selectedLabel = chosen.label;
+  return chosen.iata;
+}
+
 async function buscar() {
-  const origem = document.getElementById("origem").value.trim();
-  const destino = document.getElementById("destino").value.trim();
+  const origemInput = document.getElementById("origem");
+  const destinoInput = document.getElementById("destino");
+
+  const origem = await resolveAirportCode(origemInput);
+  const destino = await resolveAirportCode(destinoInput);
 
   if (!origem || !destino) {
-    alert("Por favor, preencha origem e destino.");
+    alert(
+      "Digite uma cidade, nome de aeroporto ou código IATA e selecione uma sugestão.",
+    );
     return;
   }
 
