@@ -15,7 +15,7 @@ Conteúdo da Disciplina: Grafos <br>
 
 ## Link da gravação
 
-(Assista ao vídeo no Youtube)[https://www.youtube.com/watch?v=urzwYSKWyO0]
+[Assista ao vídeo no Youtube](https://www.youtube.com/watch?v=urzwYSKWyO0)
 
 ## Sobre
 
