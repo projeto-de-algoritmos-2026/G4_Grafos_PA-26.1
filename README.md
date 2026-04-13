@@ -2,7 +2,7 @@
 
 ## Nome do Projeto
 
-PAeroPath - lanejador de Rotas Aéreas com Grafos (BFS e Dijkstra)
+AeroPath - planejador de Rotas Aéreas com Grafos (BFS e Dijkstra)
 
 Conteúdo da Disciplina: Grafos <br>
 
@@ -12,6 +12,10 @@ Conteúdo da Disciplina: Grafos <br>
 | ---------- | ----------------------------------- |
 | 23/1027032 | Arthur Evangelista de Oliveira      |
 | 23/1038303 | Yan Matheus Santa Brigida de Aguiar |
+
+## Link da gravação
+
+<iframe width="560" height="315" src="https://www.youtube.com/embed/urzwYSKWyO0?si=PlR9OPymo0ACmUEL" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
 
 ## Sobre
 
